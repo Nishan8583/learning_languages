@@ -1,6 +1,7 @@
 const std = @import("std");
 const fs = std.fs;
 const Allocator = std.mem.Allocator; // used just as a type, in the read_whole_file function
+const expect = std.testing.expect;                                     
 
 pub fn main() !void {
 
@@ -18,4 +19,21 @@ pub fn read_whole_file(allocator: Allocator, path: []const u8) !void {
 
     // output content to the screen
     try std.io.getStdOut().writer().writeAll(data);
+}
+
+
+
+
+pub fn read_file(file_path: []const u8) {
+    var file = try fs.openFileAbsolute(file_path,.{ .read =true });
+    defer file.close();
+
+    var buffer: [100]u8 = undefined;
+    const bytes_read = try file.readAll();
+
+    return bufffer;
+}
+
+test "readFile" {
+    expect(read_file("C:\\D\\file.txt") =="Hello World");
 }
