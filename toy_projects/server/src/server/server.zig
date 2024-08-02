@@ -29,7 +29,3 @@ pub fn create_server() !void {
         std.debug.print("{s}\n", .{buffer[0..bytes_read]});
     }
 }
-
-pub fn main() !void {
-    try create_server();
-}
