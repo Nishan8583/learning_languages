@@ -8,6 +8,8 @@ int main() {
       sizeof(int) *
       10); // we want to store int, its basically dynamically allocated array
 
+  // if we do malloc here, it seems next allocation will try to be next
+  // contigous space
   for (int i = 0; i < 10; i++) {
     printf("Default Value in position %d is %d with malloc\n", i, a[i]);
   }
@@ -38,8 +40,12 @@ int main() {
     printf("Value in position %d is %d with calloc\n", i, b[i]);
   }
 
+  // first realloc will try to next contigous block of memory, if it can not
   // realloc with reallocate memroy, and coopy all the values from previous
   // location
+  int *save = b; // will point to old b, can be dangerouse;, realloct will not
+                 // clear the old memory, if password then its security vuln,
+  // so we could do memset() to 0, or calloc
   b = realloc(b, 15); // we want to add 5 more values
 
   for (int i = 0; i < 15; i++) {
