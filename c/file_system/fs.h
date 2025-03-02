@@ -4,6 +4,8 @@
 #include <string.h>
 #include <threads.h>
 
+#ifndef FS_H
+#define FS_H
 #define DEBUG_MODE 1
 #define NON_DEBUG_MODE 0
 
@@ -55,7 +57,6 @@ typedef struct {
   FILE_ENTRY files[MAX_FILE_ENTRIES];
   STORAGE_BLOB blob_storage;
 } FILE_SYSTEM;
-
 // save_fs takes pointer to FILE_SYSTEM and saves to disk as pointed by PATH
 int save_fs(FILE_SYSTEM *fs, char *PATH) {
   FILE *file = fopen(PATH, "wb");
@@ -74,23 +75,20 @@ int save_fs(FILE_SYSTEM *fs, char *PATH) {
 }
 
 // load_fs loads the file system into fs from the file pointed by PATH
-int load_fs(FILE_SYSTEM *fs, char *PATH) {
+FILE_SYSTEM *load_fs(char *PATH) {
+  FILE_SYSTEM *fs = calloc(1, sizeof(FILE_SYSTEM));
   FILE *file = fopen(PATH, "rb");
   if (file == NULL) {
     perror("error while loading fs");
-    return LOAD_FS_OPEN_FILE_ERROR;
+    free(fs);
+    return NULL;
   }
-  if (fs == NULL) {
-    perror("load_fs() File system file has been read but the file system type "
-           "provided is NULL");
-    return LOAD_FS_NULL_PTR_TO_FS;
-  };
 
   fread(fs, sizeof(FILE_SYSTEM), 1,
         file); // fread looks at the memory layout where it is stroing and
                // correctly puts it in the fs pointer struct
   fclose(file);
-  return LOAD_FS_SUCCESS;
+  return fs;
 }
 
 // create_file creates a new entry  to the file *filename in fs.files
@@ -216,7 +214,8 @@ void test_read_and_load_fs(int DEBUG) {
     exit(-1);
   }
 
-  if (load_fs(fs, TEST_FILE_SYSTEM_PATH) != LOAD_FS_SUCCESS) {
+  FILE_SYSTEM *fs2 = load_fs(TEST_FILE_SYSTEM_PATH);
+  if (fs2 == NULL) {
     perror("test_read_and_load_fs(): unable to load_fs\n");
     exit(-1);
   }
@@ -225,7 +224,7 @@ void test_read_and_load_fs(int DEBUG) {
   }
 
   // ACt -6 Check if the file is present in the file system
-  if (!file_exists(fs, file_name)) {
+  if (!file_exists(fs2, file_name)) {
     perror(
         "test_read_and_load_fs(): test.txt file should  exist but does not\n");
     exit(-1);
@@ -235,7 +234,7 @@ void test_read_and_load_fs(int DEBUG) {
   if (DEBUG) {
     printf("test_read_and_load_fs(): attemtpting to write to a file\n");
   }
-  if (write_to_file(fs, file_name, file_content) == WRITE_FILE_FAILURE) {
+  if (write_to_file(fs2, file_name, file_content) == WRITE_FILE_FAILURE) {
     perror("test_read_and_load_fs(): writing to file failure");
     exit(-7);
   }
@@ -243,7 +242,7 @@ void test_read_and_load_fs(int DEBUG) {
     printf("Written to file successfully\n");
   }
   // Act - 8: Check if file content matched
-  char *content = read_from_file(fs, file_name);
+  char *content = read_from_file(fs2, file_name);
   if (content == NULL) {
     perror("test_read_and_load_fs(): read_from file returned NULL pointer");
     exit(-8);
@@ -258,7 +257,7 @@ void test_read_and_load_fs(int DEBUG) {
   }
 
   // ACt - 9: Remove the file
-  if (remove_file(fs, file_name) != REMOVE_FILE_SUCCESS) {
+  if (remove_file(fs2, file_name) != REMOVE_FILE_SUCCESS) {
     perror("test_read_and_load_fs(): could not remove file\n");
     exit(-7);
   }
@@ -267,7 +266,7 @@ void test_read_and_load_fs(int DEBUG) {
   }
 
   // ACt - 10: Check if removed file exist
-  if (file_exists(fs, file_name)) {
+  if (file_exists(fs2, file_name)) {
     perror("test_read_and_load_fs(): file should not exist after removal but "
            "does\n");
     exit(-8);
@@ -278,7 +277,7 @@ void test_read_and_load_fs(int DEBUG) {
   printf("test_read_and_load_fs(): SUCCESS\n");
 
   // check if file content still exists
-  if (read_from_file(fs, file_name) != NULL) {
+  if (read_from_file(fs2, file_name) != NULL) {
     perror("test_read_and_load_fs(): file content should now be null\n");
   }
   if (DEBUG) {
@@ -288,5 +287,7 @@ void test_read_and_load_fs(int DEBUG) {
   if (remove(TEST_FILE_SYSTEM_PATH) != 0) {
     perror("test_read_and_load_fs(): error during cleanup");
   }
-  free(fs);
+  free(fs2);
 }
+
+#endif

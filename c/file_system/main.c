@@ -1,4 +1,5 @@
 #include "fs.h"
+#include "user_input.h"
 
 int main(int argc, char **argv) {
   if (argc > 1) {
@@ -9,5 +10,8 @@ int main(int argc, char **argv) {
         test_read_and_load_fs(DEBUG_MODE);
       }
     }
+    return 0;
   }
+
+  handle_user_input();
 }
