@@ -136,7 +136,12 @@ int write_to_file(FILE_SYSTEM *fs, char *file_name, char *file_content) {
   for (int i = 0; i < MAX_FILE_ENTRIES; i++) {
     // found file
     if (strcmp(fs->files[i].file_name, file_name) == 0) {
-      strncpy(fs->blob_storage.blob[i], file_content, MAX_FILE_SIZE);
+      printf("trying to copy content\n");
+      char *content = calloc(4096, sizeof(char));
+      strncpy(content, file_content, MAX_FILE_SIZE);
+      fs->blob_storage.blob[i] = content;
+      fs->files[i].block_index = i;
+      printf("content copied\n");
       if (strlen(file_content) < MAX_FILE_SIZE) {
         return strlen(file_content);
       } else {
@@ -166,6 +171,15 @@ int file_exists(FILE_SYSTEM *fs, char *filename) {
     }
   }
   return false;
+}
+
+void list_files(FILE_SYSTEM *fs) {
+  for (int i = 0; i < MAX_FILE_ENTRIES; i++) {
+    if (strcmp(fs->files[i].file_name, "\0") !=
+        0) { // found where the filename has not been set, i.e. an empty slot
+      printf("file: %s\n", fs->files[i].file_name);
+    }
+  }
 }
 
 // test_read_and_load_fs runs basic sanity test check
