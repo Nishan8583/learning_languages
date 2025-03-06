@@ -14,6 +14,7 @@
 #define MAX_FILE_SIZE 4096
 #define FILE_SYSTEM_PATH "fs.bin"
 #define TEST_FILE_SYSTEM_PATH "fs_test.bin"
+#define STORAGE_PATH "storage.bin"
 
 // error codes
 #define SAVE_FS_SUCCESS 0
@@ -55,7 +56,7 @@ typedef struct {
 // FILE_SYSTEM struct contains array of FILE_ENTRY
 typedef struct {
   FILE_ENTRY files[MAX_FILE_ENTRIES];
-  STORAGE_BLOB blob_storage;
+  STORAGE_BLOB *blob_storage;
 } FILE_SYSTEM;
 // save_fs takes pointer to FILE_SYSTEM and saves to disk as pointed by PATH
 int save_fs(FILE_SYSTEM *fs, char *PATH) {
@@ -70,7 +71,15 @@ int save_fs(FILE_SYSTEM *fs, char *PATH) {
     return SAVE_FS_WRITE_FILE_ERROR;
   }
 
+  FILE *file2 = fopen(STORAGE_PATH, "wb");
+  if (file2 == NULL) {
+    perror("could not open file");
+    return -1;
+  };
+
+  fwrite(fs->blob_storage, sizeof(STORAGE_BLOB), 1, file2);
   fclose(file);
+  fclose(file2);
   return SAVE_FS_SUCCESS;
 }
 
@@ -88,6 +97,18 @@ FILE_SYSTEM *load_fs(char *PATH) {
         file); // fread looks at the memory layout where it is stroing and
                // correctly puts it in the fs pointer struct
   fclose(file);
+
+  STORAGE_BLOB *storage = calloc(1, sizeof(STORAGE_BLOB));
+  if (storage == NULL) {
+    perror("could not allocate for storage blob");
+    return fs;
+  }
+  FILE *file2 = fopen(STORAGE_PATH, "wb");
+  if (file2 == NULL) {
+    perror("could not allocate for storage");
+    return fs;
+  }
+  fs->blob_storage = storage;
   return fs;
 }
 
@@ -104,7 +125,7 @@ int create_file(FILE_SYSTEM *fs, char *filename) {
       // todo
       // Update block index from storage block
       char *file_content = calloc(MAX_FILE_SIZE, sizeof(char));
-      fs->blob_storage.blob[i] = file_content;
+      fs->blob_storage->blob[i] = file_content;
       fs->files[i].block_index = i;
       fs->files[i].size = MAX_FILE_SIZE;
       return SUCCESS_CREATE_FILE;
@@ -120,11 +141,9 @@ int remove_file(FILE_SYSTEM *fs, char *filename) {
       // remove filename
       memset(fs->files[i].file_name, 0, MAX_FILE_NAME);
       // memset content to 0
-      memset(fs->blob_storage.blob[i], 0, 4096);
-      // free the allocated memory
-      free(fs->blob_storage.blob[i]);
+      memset(fs->blob_storage->blob[i], 0, 4096);
 
-      fs->blob_storage.blob[i] = NULL;
+      fs->blob_storage->blob[i] = NULL;
       // todo update storage block and block index
       return REMOVE_FILE_SUCCESS;
     }
@@ -139,7 +158,7 @@ int write_to_file(FILE_SYSTEM *fs, char *file_name, char *file_content) {
       printf("trying to copy content\n");
       char *content = calloc(4096, sizeof(char));
       strncpy(content, file_content, MAX_FILE_SIZE);
-      fs->blob_storage.blob[i] = content;
+      fs->blob_storage->blob[i] = content;
       fs->files[i].block_index = i;
       printf("content copied\n");
       if (strlen(file_content) < MAX_FILE_SIZE) {
@@ -156,7 +175,9 @@ char *read_from_file(FILE_SYSTEM *fs, char *file_name) {
   for (int i = 0; i < MAX_FILE_ENTRIES; i++) {
     // found file
     if (strcmp(fs->files[i].file_name, file_name) == 0) {
-      return fs->blob_storage.blob[i];
+      printf("found file\n");
+      printf("File content %s\n", fs->blob_storage->blob[i]);
+      return fs->blob_storage->blob[i];
     }
   }
 
