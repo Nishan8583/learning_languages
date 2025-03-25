@@ -173,10 +173,9 @@ This field is set by you, the programmer, to specify the types of events you're 
 
 In your code, you use POLLIN as the event for the file descriptors:
 
-c
-Copy
-Edit
+```c
 fds[i].events = POLLIN;
+```
 This means you're interested in detecting when there's data available to read from the socket (a read event). Here are some of the most common events values:
 
 POLLIN: Data is available to read (input is ready).
@@ -194,10 +193,9 @@ This field is set by poll() when an event on the corresponding file descriptor o
 
 In your code, after calling poll(), you check fds[i].revents to handle events that were triggered:
 
-c
-Copy
-Edit
+```c
 if (fds[i].revents & POLLIN)
+```
 This checks if the POLLIN event (data available to read) has occurred for the file descriptor fds[i]. Here, you’re interested in reading data if the POLLIN event is set in the revents field.
 
 Workflow:
@@ -216,3 +214,180 @@ events is what you're watching for (what events you care about).
 revents is what actually happened (which events occurred when poll() returns).
 
 This mechanism allows you to efficiently handle multiple file descriptors without having to block on each one individually or use multiple threads.
+
+
+# Linux Kernel Networking vs VPP
+🔥 1. Linux Kernel Networking (Traditional Stack)
+In the traditional Linux networking stack:
+
+NIC Interrupt and Buffering:
+
+The NIC receives a packet and places it in a ring buffer (RX queue).
+
+The NIC triggers a hardware interrupt to notify the kernel.
+
+Kernel Processing:
+
+The kernel copies the packet from the NIC buffer to a kernel-space socket buffer.
+
+It performs protocol stack processing (IP, TCP, etc.).
+
+It finally delivers the packet to the user-space socket (where your poll() or epoll() server reads it).
+
+User-Space Program:
+
+Your server uses poll()/epoll() to handle multiple sockets efficiently.
+
+🚀 2. VPP: High-Performance Packet Processing
+VPP bypasses most of the Linux kernel’s traditional networking stack and uses user-space packet processing. Here’s how it works:
+
+Direct NIC Access:
+
+VPP uses Direct Memory Access (DMA) to read/write packets directly from the NIC into user-space buffers without kernel intervention.
+
+This avoids costly context switches and kernel calls.
+
+Vectorized Packet Processing:
+
+Instead of handling one packet at a time (like the Linux stack), VPP processes packets in batches (vectors).
+
+This leads to significantly higher throughput.
+
+Polling Instead of Interrupts:
+
+VPP uses polling (instead of interrupts) to continuously check for new packets.
+
+This reduces the interrupt overhead that occurs in traditional networking.
+
+⚙️ 🔥 Key Difference:
+Linux Kernel: Uses interrupt-driven processing and places packets in a kernel buffer. Your server reads from this buffer.
+
+VPP: Uses polling + DMA for direct NIC access and processes packets in user-space, skipping most of the kernel stack entirely.
+
+🛠️ 3. Why VPP Is Faster
+Zero-Copy: VPP uses zero-copy packet processing by accessing the NIC buffers directly, avoiding memory copies between kernel and user space.
+
+Batch Processing: VPP processes packets in batches (vectors) for efficiency, reducing per-packet overhead.
+
+User-Space Processing: VPP processes packets in user-space, skipping the kernel’s TCP/IP stack overhead.
+
+# VPP disabling kernel interrupt questions
+Even if VPP directly access NIC buffer and read packets and does not do interrupt, won;t NIC still send a interrupt to kernel ?
+
+
+ChatGPT said:
+That's a great question, and you're absolutely right to think about it critically. Let me clarify how VPP (Vector Packet Processing) bypasses traditional kernel networking while still working with NIC interrupts.
+
+✅ How VPP Works with NIC and Interrupts
+When VPP Uses DPDK (User-Space Drivers):
+
+VPP uses DPDK (Data Plane Development Kit), which provides user-space drivers that directly interact with the NIC.
+
+When using DPDK, VPP completely bypasses the Linux kernel network stack.
+
+The NIC does not trigger an interrupt to the kernel. Instead:
+
+DPDK masks (disables) the traditional interrupts.
+
+It uses polling mode drivers to continuously pull packets from the NIC buffer, eliminating the need for interrupts.
+
+This is why VPP can achieve such low latency—it doesn't rely on costly kernel interrupt handling.
+
+What About Kernel Interrupts?
+
+When using DPDK, VPP binds the NIC to a user-space driver (like vfio-pci or igb_uio), meaning the kernel loses control over the NIC entirely.
+
+Therefore:
+
+No interrupts are sent to the kernel.
+
+VPP polls the NIC directly using its own mechanism.
+
+This is fundamentally different from regular Linux networking, where the NIC sends interrupts to the kernel, which then signals the appropriate driver or application.
+
+🔥 Why Does VPP Disable Interrupts?
+Interrupts are slow for high-performance networking:
+
+Each interrupt triggers a context switch, which adds overhead.
+
+Frequent interrupts cause interrupt storms and degrade performance.
+
+Polling mode is more efficient for VPP:
+
+Instead of waiting for an interrupt, VPP continuously polls the NIC.
+
+This minimizes latency and maximizes throughput, making it ideal for high-speed packet processing.
+
+⚙️ How to Verify If the Kernel Is Receiving Interrupts
+If you're running VPP with DPDK, you can verify that the kernel is not receiving interrupts by checking:
+
+bash
+Copy
+Edit
+watch -n1 cat /proc/interrupts
+If the NIC is bound to DPDK drivers, you won't see any increasing interrupts for that NIC interface.
+
+If you switch back to a kernel driver (like ixgbe or e1000), you will start seeing the interrupt count increase.
+
+🚀 Key Takeaway
+When VPP uses DPDK, it bypasses kernel interrupts entirely by disabling them and using polling mode to directly access the NIC buffer.
+
+Therefore, no interrupts are sent to the kernel, which is why VPP is so fast and efficient for packet processing.
+
+
+# When VPP might not be affective
+So in situations where there is less network traffic VPP won;t be that affective right? becasue it ill just have to wait for packets thats not gonna be received within a time ?
+
+
+ChatGPT said:
+💯 Exactly! You’ve nailed a key trade-off with VPP and polling-based networking.
+
+✅ When VPP Is Less Effective
+In low-traffic situations, VPP's polling mode can actually be less efficient than traditional kernel-based networking. Here’s why:
+
+Constant Polling with No Packets
+
+Since VPP continuously polls the NIC, it wastes CPU cycles even when no packets are arriving.
+
+This is inefficient because the CPU is stuck in a loop checking for packets that may not even exist.
+
+High CPU Usage with Low Packet Rate
+
+With minimal traffic, VPP still uses a full CPU core (or more) for polling.
+
+In contrast, interrupt-driven kernel networking sleeps when idle, conserving CPU resources.
+
+🔥 Why Kernel Interrupts Are More Efficient for Low Traffic
+In low-traffic scenarios:
+
+The kernel waits for a hardware interrupt before waking up.
+
+This is more efficient because the CPU isn’t constantly polling—it sleeps until a packet arrives.
+
+VPP doesn’t have this idle-sleep behavior. It keeps polling, burning CPU cycles even when no packets are coming in.
+
+⚙️ How VPP Handles Low-Traffic Inefficiency
+To mitigate this inefficiency, VPP has:
+
+Adaptive Polling or Interrupt Coalescing
+
+Some configurations allow VPP to dynamically reduce polling frequency if traffic is low.
+
+This reduces CPU consumption during idle periods.
+
+Burst Processing
+
+VPP waits for a burst of packets before processing them together.
+
+Instead of handling packets one by one, it handles multiple packets at once, reducing the overhead per packet.
+
+Sleep or Yield on Idle
+
+Some configurations allow VPP worker threads to sleep or yield when idle to avoid 100% CPU usage.
+
+🚀 Key Takeaway
+Polling is ideal for high-throughput, low-latency traffic where the CPU is already fully utilized.
+
+However, in low-traffic conditions, VPP can be inefficient because it wastes CPU cycles by constantly polling, even when there are no packets.
+
+To balance this, modern packet processing frameworks (including VPP) implement adaptive polling or batch processing to avoid unnecessary CPU usage during idle periods.
