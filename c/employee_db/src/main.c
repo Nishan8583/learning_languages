@@ -2,19 +2,48 @@
 #include <stdbool.h>  // for boolean easiness
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
+#include <sys/poll.h>
 
 #include "file.h"
 #include "parse.h"
 #include "common.h"
+#include "srvpoll.h"
+
+// Some global vars
+int DBFD = -1;
+dbheader_t *DBHDR = NULL;
+employee_t * Employees = NULL;
 
 void print_usage(char *argv[]) {
   printf("Usage: %s -n -f <filename>\n",argv[0]);
   printf("\t -n is flag to signal a new file shoudl be created\n");
   printf("\t -f points the filename/path for the db\n");
   return;
+}
+
+
+// handle SIGTERM so that when i close the program with ctrl+c, db header is still valid
+void handle_signal(int sig) {
+    if (DBFD == -1) {
+        printf("invalid file pointer for saving db\n");
+        exit(-1);
+    }
+
+    if (DBHDR == NULL) {
+        printf("DB header is NULL\n");
+        exit(-1);
+    }
+
+    if (output_file(DBFD, DBHDR, Employees) == STATUS_ERROR) {
+        printf("error while writing employees db to file\n");
+        exit(-1);
+    }
+
+    exit(0);
 }
 
 int main(int argc, char *argv[]) {
@@ -115,9 +144,39 @@ int main(int argc, char *argv[]) {
       read_employees_list(dbhdr,employees);
   }
 
-  if (output_file(dbfd,dbhdr,employees ) != STATUS_SUCCESS) {
-      printf("could not write db header");
+  // create and bind server socket
+  printf("Binding server to port 5555\n");
+  int server_fd = create_and_bind_socket(5555);
+  if (server_fd == STATUS_ERROR) {
+      printf("invalid socket for server to listen on");
       return STATUS_ERROR;
   }
+
+  DBHDR = dbhdr;
+  DBFD = dbfd;
+  Employees = employees;
+
+  struct sigaction sa;
+  sa.sa_handler = handle_signal;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+
+  sigaction(SIGINT, &sa, NULL);
+
+
+printf("Server is now listening \n");
+if (poll_and_handle_connections(server_fd) == STATUS_ERROR ){
+    printf("error during poll\n");
+    close(server_fd);
+    return STATUS_ERROR;
+}
+
+  if (output_file(dbfd,dbhdr,employees ) != STATUS_SUCCESS) {
+      printf("could not write db header");
+      close(server_fd);
+      return STATUS_ERROR;
+  }
+  close(server_fd);
   return 0;
+
 }

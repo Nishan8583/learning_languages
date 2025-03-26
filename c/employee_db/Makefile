@@ -8,6 +8,8 @@ run: clean default
 
 default: $(TARGET)
 
+
+
 clean:
 	rm -f obj/*.o
 	rm -f bin/*
@@ -15,6 +17,9 @@ clean:
 
 # $@ is the name of the target, in this case $(TARGET) = bin/dbview\
 	# $^: Includes all prerequisites (all object files: obj/main.o, etc.).
+
+build: $(OBJ)
+	gcc -o test $?
 
 $(TARGET): $(OBJ)
 	gcc -o $@ $?

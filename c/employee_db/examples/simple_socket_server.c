@@ -10,7 +10,6 @@
 #include <unistd.h>
 
 #define MAX_CLIENTS 1024
-
 typedef enum {
   PROTO_1,
 } proto_version;
