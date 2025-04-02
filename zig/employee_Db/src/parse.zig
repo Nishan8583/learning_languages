@@ -70,10 +70,7 @@ pub const DB = struct {
         // the size of employee count is u64, so we ned 8 elements each of 8 bits to hold the value
         var e_count_bytes: [8]u8 = [_]u8{0} ** 8;
         const bytes_read = try self.file.readAll(&e_count_bytes);
-
-        if (bytes_read != @sizeOf(u64)) {
-            return DBError.ReadingEmployeeCountError;
-        }
+        _ = bytes_read;
 
         const count = std.mem.bytesToValue(u64,&e_count_bytes);
         print("Employee count {d}\n",.{count});

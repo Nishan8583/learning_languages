@@ -6,7 +6,7 @@ const args = @import("parse_args.zig");
 const print = @import("std").debug.print;
 const append_flag = "-a";
 const new_file_flag = "-n";
-
+const server = @import("server.zig");
 const ProgramError = error {
     FilePathError,
     DBParseError,
@@ -67,5 +67,7 @@ pub fn main() !void {
     for (db.employees.items) |e| {
         print("Employee = {s} Address {s}\n",.{e.name,e.address});
     }
-    
+
+    try db.save_to_file();
+    try server.start_server();
 }
