@@ -5,7 +5,7 @@ const print = std.debug.print;
 const win = @cImport({
     @cInclude("windows.h"); // include these C libraries
     @cInclude("winuser.h");
-    @cInclude("windef.h");
+    @cDefine("MIDL_INTERFACE", "struct");
 });
 
 // HHOOK is a windows event, lets program monitor events in system like keyboard input
