@@ -1,5 +1,8 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
+pub trait AuthDB: Send + Sync {
+    fn check_user(&self, username: &str, password: &str) -> bool;
+}
 
 struct User {
     username: String,
@@ -9,11 +12,7 @@ struct User {
 pub struct DB {
     userinfo: Arc<Mutex<HashMap<String,User>>>
 }
-
-
-impl DB {
-
-    pub fn new_db() ->Self{
+pub fn new_db() ->DB{
         let db = Arc::new(Mutex::new(HashMap::new()));
         db.lock().unwrap().insert("test".to_string(), User{username:"test".to_string(),password:"test".to_string()});
 
@@ -23,7 +22,8 @@ impl DB {
 
     }
 
-    pub fn check_user(&self,username: &str, password: &str) -> bool {
+impl AuthDB for DB{
+    fn check_user(&self,username: &str, password: &str) -> bool {
         println!("checking user {}",username);
 
         let user_info_guard  =self.userinfo.lock().unwrap();

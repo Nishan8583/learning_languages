@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::auth;
 
-pub async  fn handle_client(mut client: TcpStream, db: Arc<Mutex<auth::DB>>) {
+pub async  fn handle_client<D: auth::AuthDB+'static >(mut client: TcpStream, db: Arc<Mutex<D>>) {
     let msg = "Hello client\nPlease enter your Username: ";
      if let Err(e) = client.write_all(msg.as_bytes()).await {
         println!("Error while writing to client {}",e);

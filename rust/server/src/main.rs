@@ -1,9 +1,11 @@
 
-use server::app::App;
+use server::{app::App, auth};
 
 #[tokio::main]
 async fn main() -> Result<(),anyhow::Error> {
-    let app = App::new_app();
+
+    let db = auth::new_db();
+    let app = App::new_app(db);
 
     app.listen("0.0.0.0:8080").await?;
     Ok(())
