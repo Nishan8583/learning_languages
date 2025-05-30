@@ -52,7 +52,7 @@ impl AuthDB for TestDB {
     }
 }
 
-async fn test_app() {
+async fn spawn_app() {
     let app = App::new_app(new_test_db());
     app.listen("0.0.0.0:8080").await.unwrap();
 }
@@ -62,53 +62,31 @@ mod tests {
  
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+    use crate::tests::test_client;
+
     use super::*;
 
     #[tokio::test]
     async fn test_flow() {
 
     let app_handle = tokio::spawn(async move {   
-        test_app().await;
+        spawn_app().await;
     });
 
-
-    let mut client = tokio::net::TcpStream::connect("127.0.0.1:8080").await.unwrap();
-    
-    let mut buf = [0; 2048];
-    let n  = client.read(&mut buf).await.unwrap();
-
-    let msg = &buf[0..n];
-
-    let msg = std::str::from_utf8(&msg).unwrap();
-    assert_eq!(msg, "Hello client\nPlease enter your Username: ");
-
-    client.write_all("test1".as_bytes()).await.unwrap();
-
-    // now get next message and send password
-    let mut buf = [0; 2048];
-    let n = client.read(&mut buf).await.unwrap();
-
-    // server has to send a message to the client to ask for password
-    assert_ne!(n, 0);
+    let mut client1 = test_client::new("test1".to_string(), "password1".to_string());
+    client1.connect("127.0.0.1:8080").await.unwrap();
+    client1.authetnicatie().await.unwrap();
 
 
-    // Now server will be expecting a password
-    let password = "password1";
-    client.write_all(&password.as_bytes()).await.unwrap();
-
-
-    let mut buf = [0; 2048];
-    let n = client.read(&mut buf).await.unwrap();
-    assert_ne!(n, 0); // "Authentication successful\n" is 27 bytes long
-
-    let msg = &buf[0..n];
-    let msg = std::str::from_utf8(&msg).unwrap();
-
-    assert_eq!(msg, "Authentication successful\n");
+    let mut client2 = test_client::new("test2".to_string(), "password2".to_string());
+    client2.connect("127.0.0.1:8080").await.unwrap();
+    client2.authetnicatie().await.unwrap();
 
 
 
-    // check if server gives OK response
+    client1.send_message("Hello client 2").await.unwrap();
+    let msg = client2.receive_message().await.unwrap();
+    assert_eq!(msg, "Hello client 2");
 
 
     app_handle.abort();

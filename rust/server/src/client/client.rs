@@ -52,6 +52,6 @@ pub async  fn handle_client<D: auth::AuthDB+'static >(mut client: TcpStream, db:
          eprintln!("Error when writing to client {}",e);
       }
      } else {
-      eprintln!("Authentication failed for user {}",username);
+      eprintln!("Authentication failed for user {} ",username);
      }
 }
