@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = [ "divide_and_work", "thread2","thread_1", "thread_builder_pattern"]
