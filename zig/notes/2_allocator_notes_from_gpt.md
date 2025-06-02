@@ -1,17 +1,15 @@
 Ah! Great observation! 👀 Let me break it down step by step:
 
 ✅ 1. The Code in Question
-zig
-Copy
-Edit
+```zig
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
+```
 ✅ 2. Step-by-Step Explanation
 🔥 Part 1: std.heap.GeneralPurposeAllocator(.{})
-zig
-Copy
-Edit
+```zig
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+```
 std.heap.GeneralPurposeAllocator → This is Zig's general-purpose heap allocator type.
 
 (.{}) → This is the struct initializer syntax in Zig.
