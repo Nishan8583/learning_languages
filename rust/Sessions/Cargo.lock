@@ -7,6 +7,27 @@ name = "divide_and_work"
 version = "0.1.0"
 
 [[package]]
+name = "foot_gun"
+version = "0.1.0"
+
+[[package]]
+name = "mutexes"
+version = "0.1.0"
+
+[[package]]
+name = "once_cell"
+version = "1.21.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
+
+[[package]]
+name = "rw_mutexes"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
+]
+
+[[package]]
 name = "thread2"
 version = "0.1.0"
 
@@ -16,4 +37,8 @@ version = "0.1.0"
 
 [[package]]
 name = "thread_builder_pattern"
+version = "0.1.0"
+
+[[package]]
+name = "thread_scopes"
 version = "0.1.0"
