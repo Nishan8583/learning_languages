@@ -11,9 +11,6 @@
 
 char *DEST = "./dest/";
 
-
-int copy_file(char *src, char *dst);
-
 int main() {
   DIR *d= opendir("./src");
   
