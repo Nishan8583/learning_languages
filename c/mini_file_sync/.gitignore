@@ -1,0 +1,5 @@
+dest/
+include/*.o
+src/*.o
+*.o
+sync_tool
