@@ -1,3 +1,3 @@
 [workspace]
 resolver = "3"
-members = [ "divide_and_work", "foot_gun", "mutexes", "rw_mutexes", "thread2","thread_1", "thread_builder_pattern", "thread_scopes"]
+members = [ "affinity", "channels", "deadlocks", "divide_and_work", "foot_gun", "mutexes", "parking_threads", "poision", "rw_mutexes", "thread2","thread_1", "thread_builder_pattern", "thread_scopes", "workers"]

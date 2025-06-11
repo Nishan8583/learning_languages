@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = [ "fifth_pinning_recursion","first", "fourth_tokio_select", "second", "third_tokio_channels"]

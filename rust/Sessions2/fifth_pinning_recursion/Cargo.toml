@@ -1,0 +1,8 @@
+[package]
+name = "fifth_pinning_recursion"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-recursion = "1.1.1"
+tokio = { version = "1.45.1", features = ["full"] }
