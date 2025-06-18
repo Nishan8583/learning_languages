@@ -1,0 +1,7 @@
+- test.c
+- it createts src and dst directory
+- create some sample files in src directory
+- Test case 1: Sync when no files were copied
+- Test case 2: Update the some files in sync, and check if the files were copied
+- Test case 3: When there is no changes, do not update the file
+- A function that does the entire sync process, it takes src and dst folder name

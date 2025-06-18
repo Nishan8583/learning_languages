@@ -7,7 +7,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Iinclude
 
 # our source files
-SRC = ./main.c src/copy_file.c
+SRC = ./main.c src/copy_file.c src/file_sync.c
 
 
 #This is a make substitution pattern.
@@ -45,3 +45,18 @@ clean:
 
 .PHONY: all cle
 	return 0;
+
+
+# Testing
+TEST_SRC = tests.c
+TEST_OBJ = src/file_sync.c src/copy_file.c
+TEST_BIN = test_runner
+
+test: $(TEST_BIN)
+	./$(TEST_BIN)
+
+$(TEST_BIN): $(TEST_SRC) $(TEST_OBJ)
+	$(CC) $(CFLAGS) $^ -o $@
+
+clean:
+	rm -f $(TARGET) $(OBJ) $(TEST_BIN)
