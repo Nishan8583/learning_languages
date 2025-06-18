@@ -1,0 +1,1 @@
+C:\Users\nishan\Documents\GitHub\learning_languages\rust\AOC\target\debug\AOC.exe: C:\Users\nishan\Documents\GitHub\learning_languages\rust\AOC\src\day_2.rs C:\Users\nishan\Documents\GitHub\learning_languages\rust\AOC\src\lib.rs C:\Users\nishan\Documents\GitHub\learning_languages\rust\AOC\src\main.rs
